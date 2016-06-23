@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>BrewPublik &mdash; Routific to Tookan Converter</title>
+    <style>
+      html {
+        font-size: 16px;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background-color: #9B95ED;
+        color: #FFF;
+        font-family: Arial;
+        line-height: 1.5;
+      }
+      .container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+      .convert {
+        text-align: center;
+      }
+      .convert__inputLabel {
+        background-color: #FFF;
+        color: #9B95ED;
+        padding: 1em 2em;
+        border-radius: 1.5em;
+        letter-spacing: 0.03rem;
+        cursor: pointer;
+        font-size: 1rem;
+        -webkit-font-smoothing: antialiased;
+        font-weight: bold;
+      }
+      .convert__download {
+        margin-top: 3em;
+        min-height: 1.5rem;
+      }
+      .convert__download a {
+        color: #FFF;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(255,255,255,0.4);
+        letter-spacing: 0.03rem;
+        transition: opacity 300ms linear;
+        opacity: 1;
+      }
+      .convert__download a.is-hidden {
+        opacity: 0;
+      }
+      .convert__input {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- BEGIN VISIBLE MARKUP -->
+    <div class="container">
+      <div class="convert" data-convert>
+        <label for="convert-input" class="convert__inputLabel">
+          <span>Choose Routific CSV File</span>
+          <input type="file" accept="text/csv" class="convert__input" id="convert-input" data-convert-input />
+        </label>
+        <div class="convert__download" data-convert-download></div>
+      </div>
+    </div>
+    <!-- END VISIBLE MARKUP -->
+
+    <!-- BEGIN SCRIPTS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.js"></script>
+    <!-- <script src="./papa.js"></script> -->
+    <script>
+      /*
+       * Doing this old-school so it can all be in one file
+       * and have no overhead for anyone looking to use or
+       * extend this.
+       */
+      ;(function() {
+        'use strict'
+
+        /*
+         * Hardcoded for now. These are the delivery people
+         * who are exported as "Driver Name" from Routific
+         * but imported into Tookan as "Agent ID (Settings > Agent)".
+         */
+        var agents = {
+          'Peter Hillinck': 7659,
+          'Jeff Harris': 7528,
+          'Will Taylor': 7401,
+          'Cameron Williams': 11139
+        }
+
+        // Select input and listen for file to be added
+        var input = document.querySelector('[data-convert-input]')
+        input.addEventListener('change', handleFile)
+
+        // Read the file and attach load & error events
+        function handleFile(e) {
+          var file = e.target.files[0]
+          var reader = new FileReader()
+          reader.readAsText(file, 'UTF-8')
+          reader.addEventListener('load', handleReadFile)
+          reader.addEventListener('error', handleReadFileError)
+        }
+
+        // Try to parse the file
+        function handleReadFile(e) {
+          var result = e.target.result
+          if (typeof Papa !== 'undefined') {
+            Papa.parse(result, {
+              header: true,
+              dynamicTyping: true,
+              complete: handleParse,
+              error: handleParseError
+            })
+          } else {
+            alert('Parser library (PapaParse) not loaded.')
+          }
+        }
+
+        /*
+         * When file is parsed, convert to a Tookan object,
+         * convert it back to a CSV and save it
+         */
+        function handleParse(results) {
+          var tookanObjects = results.data.map(createTookanObject)
+          var tookanCSV = Papa.unparse(tookanObjects)
+          emptyDownloadContainer()
+          renderDownloadLink(tookanCSV)
+        }
+
+        // Receive CSV data and reformat appropriately for Tookan
+        function createTookanObject(data) {
+          var [street, city, state, zip] = data['Address'].split(' , ')
+          return {
+            'Shipment ID'                                : data['shipment id'],
+            'Task Description'                           : data['Notes 2'],
+            'Customer Email'                             : data['email'],
+            'Customer Name'                              : data['Visit Name'],
+            'Customer Phone'                             : data['Phone'],
+            'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)': data['Time window start'],
+            'End Date and Time (MM-DD-YYYY) (HH:MM:SS)'  : data['Time window end'],
+            'Street level address*'                      : street,
+            'City'                                       : city,
+            'Zipcode / Pincode*'                         : zip,
+            'Country'                                    : 'United States',
+            'Agent ID (Settings > Agent)'                : agents[data['Driver Name']],
+            'Team_ID(or leave this column empty)'        : '3113',
+            'Template_ID'                                : 'Beer Deliveries'
+          }
+        }
+
+        // Create new download link and append to the download container.
+        function renderDownloadLink(csv) {
+          var timestamp = (new Date).toISOString()
+          var downloadContainer = document.querySelector('[data-convert-download]')
+          var downloadLink = document.createElement('a')
+          downloadLink.textContent = 'Download CSV (' + timestamp + ')'
+          downloadLink.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv))
+          downloadLink.setAttribute('download', timestamp + '-brewpublik-routific-to-tookan.csv')
+          downloadLink.classList.add('is-hidden')
+          downloadContainer.appendChild(downloadLink)
+          setTimeout(function() {
+            downloadLink.classList.remove('is-hidden')
+          }, 0)
+        }
+
+        // Remove previous download link (if exists),
+        function emptyDownloadContainer() {
+          document.querySelector('[data-convert-download]').innerHTML = ''
+        }
+
+        // Handle file read error
+        function handleReadFileError(e) {
+          alert('There was an error reading the file.')
+        }
+
+        // Handle file parse error
+        function handleParseError(e) {
+          alert('There was an error parsing the file.')
+        }
+      })();
+    </script>
+    <!-- END SCRIPTS -->
+  </body>
+</html>
