@@ -147,31 +147,42 @@
          * convert it back to a CSV and save it
          */
         function handleParse(results) {
-          var tookanObjects = results.data.map(createTookanObject)
+          var tookanObjects = results.data.reduce(createTookanObject, [])
           var tookanCSV = Papa.unparse(tookanObjects)
           emptyDownloadContainer()
           renderDownloadLink(tookanCSV)
         }
 
         // Receive CSV data and reformat appropriately for Tookan
-        function createTookanObject(data) {
-          var [street, city, state, zip] = data['Address'].split(' , ')
-          return {
-            'Shipment ID'                                : data['shipment id'],
-            'Task Description'                           : data['Notes 2'],
-            'Customer Email'                             : data['email'],
-            'Customer Name'                              : data['Visit Name'],
-            'Customer Phone'                             : data['Phone'],
-            'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)': data['Time window start'],
-            'End Date and Time (MM-DD-YYYY) (HH:MM:SS)'  : data['Time window end'],
-            'Street level address*'                      : street,
-            'City'                                       : city,
-            'Zipcode / Pincode*'                         : zip,
-            'Country'                                    : 'United States',
-            'Agent ID (Settings > Agent)'                : agents[data['Driver Name']],
-            'Team_ID(or leave this column empty)'        : '3113',
-            'Template_ID'                                : 'Beer Deliveries'
+        function createTookanObject(array, data) {
+          if (!!data['shipment id']) {
+            var [street, city, state, zip] = data['Address'].split(' , ')
+            var currentDate = getFormattedDate(new Date())
+            array.push({
+              'Shipment ID'                                 : data['shipment id'],
+              'Task Description'                            : data['Notes 2'],
+              'Customer Email'                              : data['email'],
+              'Customer Name'                               : data['Visit Name'],
+              'Customer Phone'                              : data['Phone'],
+              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': currentDate + ' ' + data['Time window start'],
+              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : currentDate + ' ' + data['Time window end'],
+              'Street level address*'                       : street,
+              'City'                                        : city,
+              'Zipcode / Pincode*'                          : zip,
+              'Country'                                     : 'United States',
+              'Agent ID (Settings > Agent)'                 : agents[data['Driver Name']],
+              'Team_ID(or leave this column empty)'         : '3113',
+              'Template_ID'                                 : 'Beer Deliveries'
+            })
           }
+          return array
+        }
+
+        function getFormattedDate(date) {
+          var month = date.getMonth() + 1
+          var day = date.getDate()
+          var year = date.getFullYear()
+          return [month, day, year].join('/')
         }
 
         // Create new download link and append to the download container.
