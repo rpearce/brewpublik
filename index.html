@@ -37,21 +37,6 @@
         -webkit-font-smoothing: antialiased;
         font-weight: bold;
       }
-      .convert__download {
-        margin-top: 3em;
-        min-height: 1.5rem;
-      }
-      .convert__download a {
-        color: #FFF;
-        text-decoration: none;
-        border-bottom: 1px solid rgba(255,255,255,0.4);
-        letter-spacing: 0.03rem;
-        transition: opacity 300ms linear;
-        opacity: 1;
-      }
-      .convert__download a.is-hidden {
-        opacity: 0;
-      }
       .convert__input {
         display: none;
       }
@@ -65,7 +50,6 @@
           <span>Choose Routific CSV File</span>
           <input type="file" accept="text/csv" class="convert__input" id="convert-input" data-convert-input />
         </label>
-        <div class="convert__download" data-convert-download></div>
       </div>
     </div>
     <!-- END VISIBLE MARKUP -->
@@ -149,8 +133,8 @@
         function handleParse(results) {
           var tookanObjects = results.data.reduce(createTookanObject, [])
           var tookanCSV = Papa.unparse(tookanObjects)
-          emptyDownloadContainer()
-          renderDownloadLink(tookanCSV)
+          resetInput()
+          download(tookanCSV)
         }
 
         // Receive CSV data and reformat appropriately for Tookan
@@ -159,20 +143,20 @@
             var [street, city, state, zip] = data['Address'].split(' , ')
             var currentDate = getFormattedDate(new Date())
             array.push({
-              'Shipment ID'                                 : data['shipment id'],
               'Task Description'                            : data['Notes 2'],
               'Customer Email'                              : data['email'],
               'Customer Name'                               : data['Visit Name'],
-              'Customer Phone'                              : data['Phone'],
-              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': currentDate + ' ' + data['Time window start'],
-              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : currentDate + ' ' + data['Time window end'],
               'Street level address*'                       : street,
               'City'                                        : city,
               'Zipcode / Pincode*'                          : zip,
-              'Country'                                     : 'United States',
+              'Country*'                                     : 'United States',
+              'Customer Phone'                              : data['Phone'],
+              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': currentDate + ' ' + data['Time window start'],
+              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : currentDate + ' ' + data['Time window end'],
               'Agent ID (Settings > Agent)'                 : agents[data['Driver Name']],
               'Team_ID(or leave this column empty)'         : '3113',
-              'Template_ID'                                 : 'Beer Deliveries'
+              'Template_ID'                                 : 'Beer Deliveries',
+              'Shipment ID'                                 : data['shipment id']
             })
           }
           return array
@@ -185,24 +169,22 @@
           return [month, day, year].join('/')
         }
 
-        // Create new download link and append to the download container.
-        function renderDownloadLink(csv) {
+        // Trigger browser download for FF, IE11 and Chrome.
+        // Safari will redirect to a page that can be Save As...
+        function download(csv) {
           var timestamp = (new Date).toISOString()
-          var downloadContainer = document.querySelector('[data-convert-download]')
+          var filename = timestamp + '-brewpublik-routific-to-tookan.csv'
+          var csvData = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+          var csvURL = navigator.msSaveBlob ? navigator.msSaveBlob(csvData, filename) : window.URL.createObjectURL(csvData)
           var downloadLink = document.createElement('a')
-          downloadLink.textContent = 'Download CSV (' + timestamp + ')'
-          downloadLink.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv))
-          downloadLink.setAttribute('download', timestamp + '-brewpublik-routific-to-tookan.csv')
-          downloadLink.classList.add('is-hidden')
-          downloadContainer.appendChild(downloadLink)
-          setTimeout(function() {
-            downloadLink.classList.remove('is-hidden')
-          }, 0)
+          downloadLink.href = csvURL
+          downloadLink.setAttribute('download', filename)
+          downloadLink.click()
         }
 
-        // Remove previous download link (if exists),
-        function emptyDownloadContainer() {
-          document.querySelector('[data-convert-download]').innerHTML = ''
+        function resetInput() {
+          var input = document.querySelector('[data-convert-input]')
+          input.value = null
         }
 
         // Handle file read error
