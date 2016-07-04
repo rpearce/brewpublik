@@ -65,7 +65,7 @@
       ;(function() {
         'use strict'
 
-        var date = new Date(new Date().getTime() + 24 * 60 * 60 * 1000)
+        var date = null
         var agents = {}
 
         // Select input and listen for file to be added
@@ -76,6 +76,7 @@
         function handleFile(e) {
           var file = e.target.files[0]
           var reader = new FileReader()
+          date = window.prompt('Please enter relevant date mm/dd/YYYY')
           reader.readAsText(file, 'UTF-8')
           reader.addEventListener('load', handleReadFile)
           reader.addEventListener('error', handleReadFileError)
@@ -103,7 +104,7 @@
         function handleParse(results) {
           results.data.forEach(function(item) {
             var agent = item['Driver Name'];
-            if (!!agent && !agents[agent]) {
+            if (!!agent && !!item['shipment id'] && !agents[agent]) {
               agents[agent] = window.prompt('What is the Tookan ID for ' + agent + '?')
             }
           })
@@ -118,7 +119,6 @@
         function createTookanObject(array, data) {
           if (!!data['shipment id']) {
             var [street, city, state, zip] = data['Address'].split(' , ')
-            var formattedDate = getFormattedDate(date)
             array.push({
               'Task Description'                            : data['Notes 2'],
               'Customer Email'                              : data['email'],
@@ -128,8 +128,8 @@
               'Zipcode / Pincode*'                          : zip,
               'Country*'                                    : 'United States',
               'Customer Phone'                              : data['Phone'],
-              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': formattedDate + ' ' + data['Time window start'],
-              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : formattedDate + ' ' + data['Time window end'],
+              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': date + ' ' + roundHourDown(data['Time window end']),
+              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : date + ' ' + roundHourUp(data['Time window end']),
               'Agent ID (Settings > Agent)'                 : agents[data['Driver Name']],
               'Team_ID(or leave this column empty)'         : '3113',
               'Template_ID'                                 : 'Beer Deliveries',
@@ -139,17 +139,28 @@
           return array
         }
 
-        function getFormattedDate(date) {
-          var day = date.getDate()
-          var month = date.getMonth() + 1
-          var year = date.getFullYear()
-          return [month, day, year].join('/')
+        function roundHourDown(time) {
+          var arr = time.split(':').map(getInt)
+          return Math.floor(arr[0] + arr[1] / 60) % 24 + ':00'
+        }
+
+        function roundHourUp(time) {
+          var arr = time.split(':').map(getInt)
+          if (arr[1] === 0) {
+            return arr[0] + 1 + ':00'
+          } else {
+            return Math.ceil(arr[0] + arr[1] / 60) % 24 + ':00'
+          }
+        }
+
+        function getInt(n) {
+          return parseInt(n)
         }
 
         // Trigger browser download for FF, IE11 and Chrome.
         // Safari will redirect to a page that can be Save As...
         function download(csv) {
-          var timestamp = date.toISOString()
+          var timestamp = (new Date(new Date().getTime() + 24 * 60 * 60 * 1000)).toISOString()
           var filename = timestamp + '-brewpublik-routific-to-tookan.csv'
           var csvData = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
           var csvURL = navigator.msSaveBlob ? navigator.msSaveBlob(csvData, filename) : window.URL.createObjectURL(csvData)
