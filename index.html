@@ -140,19 +140,38 @@
         }
 
         function roundHourDown(time) {
+          var period = 'AM'
           var arr = time.split(':').map(getInt)
-          return Math.floor(arr[0] + arr[1] / 60) % 24 + ':00'
+          if (arr[0] > 12 && arr[0] < 24) {
+            arr[0] -= 12
+            period = 'PM'
+          } else if (arr[0] === 24) {
+            arr[0] -= 12
+            period = 'AM'
+          }
+          return pad(Math.floor(arr[0] + arr[1] / 60) % 24) + ':00:00 ' + period
         }
 
         function roundHourUp(time) {
+          var period = 'AM'
           var arr = time.split(':').map(getInt)
-          if (arr[1] === 0) {
-            return arr[0] + 1 + ':00'
-          } else {
-            return Math.ceil(arr[0] + arr[1] / 60) % 24 + ':00'
+          if (arr[1] === 0) arr[0] += 1
+          if (arr[0] > 12 && arr[0] < 24) {
+            arr[0] -= 12
+            period = 'PM'
+          } else if (arr[0] === 24) {
+            arr[0] -= 12
+            period = 'AM'
           }
+          return pad(Math.ceil(arr[0] + arr[1] / 60) % 24) + ':00:00 ' + period
         }
 
+        // If number is less than 10, left-pad with a 0
+        function pad(n) {
+          return n < 10 ? '0' + n : n;
+        }
+
+        // Extract an integer from whatever is sent
         function getInt(n) {
           return parseInt(n)
         }
@@ -170,6 +189,7 @@
           downloadLink.click()
         }
 
+        // Reset the input value of converter
         function resetInput() {
           var input = document.querySelector('[data-convert-input]')
           input.value = null
