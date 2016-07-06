@@ -128,8 +128,8 @@
               'Zipcode / Pincode*'                          : zip,
               'Country*'                                    : 'United States',
               'Customer Phone'                              : data['Phone'],
-              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': date + ' ' + roundHourDown(data['Finish by']),
-              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : date + ' ' + roundHourUp(data['Finish by']),
+              'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': date + ' ' + roundHour(data['Finish by'], 'down'),
+              'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : date + ' ' + roundHour(data['Finish by'], 'up'),
               'Agent ID (Settings > Agent)'                 : agents[data['Driver Name']],
               'Team_ID(or leave this column empty)'         : '3113',
               'Template_ID'                                 : 'Beer Deliveries',
@@ -139,31 +139,22 @@
           return array
         }
 
-        function roundHourDown(time) {
+        function roundHour(time, direction) {
           var period = 'AM'
           var arr = time.split(':').map(getInt)
-          if (arr[0] > 12 && arr[0] < 24) {
-            arr[0] -= 12
-            period = 'PM'
-          } else if (arr[0] === 24) {
-            arr[0] -= 12
-            period = 'AM'
-          }
-          return pad(Math.floor(arr[0] + arr[1] / 60) % 24) + ':00:00 ' + period
-        }
+          var toRound = arr[0] + arr[1] / 60
+          var rounded = (direction === 'down' ? Math.floor(toRound) : Math.ceil(toRound)) % 24
 
-        function roundHourUp(time) {
-          var period = 'AM'
-          var arr = time.split(':').map(getInt)
-          if (arr[1] === 0) arr[0] += 1
-          if (arr[0] > 12 && arr[0] < 24) {
-            arr[0] -= 12
+          if (rounded === 12) {
             period = 'PM'
-          } else if (arr[0] === 24) {
-            arr[0] -= 12
-            period = 'AM'
+          } else if (rounded > 12 && rounded < 24) {
+            rounded -= 12
+            period = 'PM'
+          } else if (rounded === 24) {
+            rounded -= 12
           }
-          return pad(Math.ceil(arr[0] + arr[1] / 60) % 24) + ':00:00 ' + period
+
+          return pad(rounded) + ':00:00 ' + period
         }
 
         // If number is less than 10, left-pad with a 0
