@@ -142,6 +142,9 @@
         function roundHour(time, direction) {
           var period = 'AM'
           var arr = time.split(':').map(getInt)
+
+          if (arr[1] === 0) arr[1] = 1 // if it's on the hour, we want to go up and down--not stay.
+
           var toRound = arr[0] + arr[1] / 60
           var rounded = (direction === 'down' ? Math.floor(toRound) : Math.ceil(toRound)) % 24
 
