@@ -67,6 +67,7 @@
 
         var date = null
         var agents = {}
+        var teamId = null
 
         // Select input and listen for file to be added
         var input = document.querySelector('[data-convert-input]')
@@ -77,6 +78,7 @@
           var file = e.target.files[0]
           var reader = new FileReader()
           date = window.prompt('Please enter relevant date mm/dd/YYYY')
+          teamId = window.prompt('Please enter Team ID (e.g., 3113)')
           reader.readAsText(file, 'UTF-8')
           reader.addEventListener('load', handleReadFile)
           reader.addEventListener('error', handleReadFileError)
@@ -131,7 +133,7 @@
               'Start Date and Time (MM-DD-YYYY) (HH:MM:SS)*': date + ' ' + roundHour(data['Finish by'], 'down'),
               'End Date and Time (MM-DD-YYYY) (HH:MM:SS)*'  : date + ' ' + roundHour(data['Finish by'], 'up'),
               'Agent ID (Settings > Agent)'                 : agents[data['Driver Name']],
-              'Team_ID(or leave this column empty)'         : '3113',
+              'Team_ID(or leave this column empty)'         : teamId,
               'Template_ID'                                 : 'Beer Deliveries',
               'Shipment ID'                                 : data['shipment id']
             })
